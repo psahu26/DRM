@@ -1,0 +1,31 @@
+name: check-commit-msg-convention
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: |
+          sudo chown -R root:root $GITHUB_WORKSPACE
+          current_branch=${GITHUB_REF#refs/heads/}
+          default_branch=${{ github.event.repository.default_branch }}
+          commit_hash=$(git rev-parse --short "$GITHUB_SHA")
+          echo "Current Branch : $current_branch"
+          #no_of_commits_to_check=$(git rev-list $current_branch --count --not $default_branch)
+          no_of_commits_to_check=20
+          echo "No of commits to check : $no_of_commits_to_check"
+          commit_msg_regex="^[A-Z][A-Z]-[0-9]*.*"
+          for ((n=0; n<$no_of_commits_to_check;n++))
+          do
+              commit_msg=$(git show --pretty=format:%s -s HEAD~$n)
+              echo "commit msg $n"
+              if [[ $commit_msg =~ $commit_msg_regex ]]
+                  then
+                      echo "Commit Msg '$commit_msg' matches Commit Msg Regex '$commit_msg_regex'"
+                  else
+                      echo "Commit Msg '$commit_msg' should follow the convention [board-name]-[ticket-number]-description"
+                      echo "Commit Hash $(git rev-parse --short HEAD~$n)"
+                      exit 99
+              fi
+          done
